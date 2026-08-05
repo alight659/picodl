@@ -26,7 +26,6 @@ To run tests, run the following command
     pytest -v
 ```
 
-
 ## Demo
 
 A sample model
@@ -51,6 +50,11 @@ train(net, x_train, y_train,
 
 net.save("model.picodl")
 ```
+
+## TODO
+- Implement GPU Acceleration to boost up training time.
+- Swap numpy backend with a custom math module(Calling this `picomath`) written from scratch in C.
+
 ## Authors
 
 - [@alight659](https://www.github.com/alight659)
