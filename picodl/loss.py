@@ -25,6 +25,8 @@ class BinaryCrossEntropy(Loss):
 class NLLLoss(Loss):
     # Expects predicted = log-probabilities (N, C), actual = int class indices (N,)
     def loss(self, predicted: Tensor, actual) -> Tensor:
+        actual = actual.data if isinstance(actual, Tensor) else np.asarray(actual)
+        actual = actual.astype(np.int64)
         n = predicted.shape[0]
         picked = predicted[np.arange(n), actual]
         return -picked.mean()
@@ -33,6 +35,8 @@ class NLLLoss(Loss):
 class CrossEntropyLoss(Loss):
     # Expects predicted = raw logits (N, C), actual = int class indices (N,). 
     def loss(self, predicted: Tensor, actual) -> Tensor:
+        actual = actual.data if isinstance(actual, Tensor) else np.asarray(actual)
+        actual = actual.astype(np.int64)
         log_probs = predicted.log_softmax(axis=-1)
         n = predicted.shape[0]
         picked = log_probs[np.arange(n), actual]
