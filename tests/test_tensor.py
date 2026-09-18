@@ -237,3 +237,43 @@ def test_multinomial_no_grad():
     probs = Tensor([[0.0, 1.0, 0.0]])
     samples = probs.multinomial(num_samples=1)
     assert samples[0, 0] == 1
+
+
+def _numerical_grad(f, x, eps=1e-5):
+    g = np.zeros_like(x)
+    it = np.nditer(x, flags=["multi_index"])
+    for _ in it:
+        idx = it.multi_index
+        d1 = x.copy(); d1[idx] += eps
+        d2 = x.copy(); d2[idx] -= eps
+        g[idx] = (f(d1) - f(d2)) / (2 * eps)
+    return g
+
+
+# regression test
+def test_matmul_backward_batched_3d():
+    np.random.seed(0)
+    a = Tensor(np.random.randn(2, 4, 3), requires_grad=True)
+    b = Tensor(np.random.randn(2, 3, 5), requires_grad=True)
+    out = a @ b
+    assert out.shape == (2, 4, 5)
+    out.sum().backward()
+
+    ga_num = _numerical_grad(lambda ad: (ad @ b.data).sum(), a.data)
+    gb_num = _numerical_grad(lambda bd: (a.data @ bd).sum(), b.data)
+    assert np.allclose(a.grad, ga_num, atol=1e-6)
+    assert np.allclose(b.grad, gb_num, atol=1e-6)
+
+
+def test_matmul_backward_batched_4d_attention_shape():
+    np.random.seed(1)
+    q = Tensor(np.random.randn(2, 3, 4, 5), requires_grad=True)
+    k = Tensor(np.random.randn(2, 3, 4, 5), requires_grad=True)
+    scores = q @ k.transpose(0, 1, 3, 2)
+    assert scores.shape == (2, 3, 4, 4)
+    scores.sum().backward()
+
+    gq_num = _numerical_grad(
+        lambda qd: (qd @ k.data.transpose(0, 1, 3, 2)).sum(), q.data
+    )
+    assert np.allclose(q.grad, gq_num, atol=1e-6)

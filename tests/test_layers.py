@@ -142,3 +142,33 @@ def test_dropout_zero_p_is_identity():
     x = Tensor(np.random.randn(3, 3))
     out = do.forward(x)
     assert np.allclose(out.data, x.data)
+
+
+# regression test
+def test_batchnorm_backward_matches_numerical_gradient():
+    np.random.seed(0)
+    bn = BatchNorm2D(num_features=2)
+    x = Tensor(np.random.randn(4, 2, 3, 3), requires_grad=True)
+    out = bn.forward(x)
+    (out * out).sum().backward()
+    analytic = x.grad.copy()
+
+    gamma = bn.params["gamma"].data.copy()
+    beta = bn.params["beta"].data.copy()
+
+    def f(xd):
+        bn2 = BatchNorm2D(num_features=2)
+        bn2.params["gamma"].data = gamma.copy()
+        bn2.params["beta"].data = beta.copy()
+        return (bn2.forward(Tensor(xd)).data ** 2).sum()
+
+    eps = 1e-5
+    numerical = np.zeros_like(x.data)
+    it = np.nditer(x.data, flags=["multi_index"])
+    for _ in it:
+        idx = it.multi_index
+        d1 = x.data.copy(); d1[idx] += eps
+        d2 = x.data.copy(); d2[idx] -= eps
+        numerical[idx] = (f(d1) - f(d2)) / (2 * eps)
+
+    assert np.allclose(analytic, numerical, atol=1e-4)

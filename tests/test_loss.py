@@ -62,3 +62,35 @@ def test_cross_entropy_matches_manual_log_softmax_nll():
     logits2 = Tensor(logits.data.copy(), requires_grad=True)
     manual = NLLLoss().loss(logits2.log_softmax(axis=-1), targets)
     assert np.isclose(ce.data, manual.data)
+
+
+# regression test
+def test_cross_entropy_accepts_tensor_wrapped_targets():
+    np.random.seed(0)
+    logits = Tensor(np.random.randn(5, 3), requires_grad=True)
+    targets_tensor = Tensor(np.array([1.0, 0.0, 0.0, 1.0, 0.0]))
+    loss = CrossEntropyLoss().loss(logits, targets_tensor)
+    loss.backward()
+    assert logits.grad.shape == (5, 3)
+    assert np.isfinite(loss.data)
+
+
+def test_nll_loss_accepts_tensor_wrapped_targets():
+    np.random.seed(0)
+    log_probs = Tensor(np.random.randn(5, 3), requires_grad=True).log_softmax(axis=-1)
+    targets_tensor = Tensor(np.array([2.0, 1.0, 0.0, 2.0, 1.0]))
+    loss = NLLLoss().loss(log_probs, targets_tensor)
+    loss.backward()
+    assert np.isfinite(loss.data)
+
+
+def test_cross_entropy_tensor_targets_match_raw_array_targets():
+    np.random.seed(0)
+    logits = Tensor(np.random.randn(6, 4), requires_grad=True)
+    raw = np.array([0, 3, 1, 2, 3, 0])
+    loss_raw = CrossEntropyLoss().loss(logits, raw)
+
+    logits2 = Tensor(logits.data.copy(), requires_grad=True)
+    loss_tensor = CrossEntropyLoss().loss(logits2, Tensor(raw.astype(float)))
+
+    assert np.isclose(loss_raw.data, loss_tensor.data)
