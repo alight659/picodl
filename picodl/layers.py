@@ -129,16 +129,18 @@ class BatchNorm2D(Layer):
 
     def forward(self, inputs: Tensor) -> Tensor:
         if self.training:
-            mean = inputs.data.mean(axis=(0, 2, 3))
-            var = inputs.data.var(axis=(0, 2, 3))
-            self.running_mean = (1 - self.momentum) * self.running_mean + self.momentum * mean
-            self.running_var = (1 - self.momentum) * self.running_var + self.momentum * var
-        else:
-            mean = self.running_mean
-            var = self.running_var
+            mu = inputs.mean(axis=0).mean(axis=1).mean(axis=1)          # (C,)
+            self.running_mean = (1 - self.momentum) * self.running_mean + self.momentum * mu.data
+            mean_t = mu.reshape(1, -1, 1, 1)
 
-        mean_t = Tensor(mean.reshape(1, -1, 1, 1))
-        var_t = Tensor(var.reshape(1, -1, 1, 1))
+            diff0 = inputs - mean_t
+            var = (diff0 * diff0).mean(axis=0).mean(axis=1).mean(axis=1)  # (C,) biased var
+            self.running_var = (1 - self.momentum) * self.running_var + self.momentum * var.data
+            var_t = var.reshape(1, -1, 1, 1)
+        else:
+            mean_t = Tensor(self.running_mean.reshape(1, -1, 1, 1))
+            var_t = Tensor(self.running_var.reshape(1, -1, 1, 1))
+
         gamma = self.params["gamma"]
         beta = self.params["beta"]
         gamma_b = Tensor(gamma.data.reshape(1, -1, 1, 1), gamma.requires_grad, (gamma,), "reshape_g")
