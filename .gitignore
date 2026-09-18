@@ -1,3 +1,6 @@
 venv/
 .pytest_cache/
 */__pycache__
+build/
+dist/
+picodl_nn.egg-info
