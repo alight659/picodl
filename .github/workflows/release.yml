@@ -1,7 +1,7 @@
-name: Manual Release Builder
+name: Release
 
 on:
-  workflow_dispatch: 
+  workflow_dispatch:
 
 jobs:
   build-and-release:
@@ -34,9 +34,22 @@ jobs:
 
     - name: Generate Commit Changelog
       id: changelog
-      uses: einaregilsson/build-changelog@v3
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        echo "CHANGELOG<<EOF" >> $GITHUB_ENV
+        
+        # Get the latest tag name if it exists
+        LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+        
+        if [ -z "$LATEST_TAG" ]; then
+          echo "First GitHub release! Listing all commits:" >> $GITHUB_ENV
+          git log --pretty=format:"* %s (%h)" >> $GITHUB_ENV
+        else
+          echo "Commits since $LATEST_TAG:" >> $GITHUB_ENV
+          git log ${LATEST_TAG}..HEAD --pretty=format:"* %s (%h)" >> $GITHUB_ENV
+        fi
+        
+        echo "" >> $GITHUB_ENV
+        echo "EOF" >> $GITHUB_ENV
 
     - name: Build Source and Wheel distributions
       run: python setup.py sdist bdist_wheel
@@ -48,7 +61,7 @@ jobs:
         name: Release v${{ env.VERSION }}
         body: |
           ## What's Changed in this Release:
-          ${{ steps.changelog.outputs.changelog }}
+          ${{ env.CHANGELOG }}
         draft: false
         prerelease: false
         files: |
