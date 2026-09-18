@@ -95,9 +95,9 @@ class Tensor:
 
         def _backward():
             if self.requires_grad:
-                self._accumulate(out.grad @ other.data.T)
+                self._accumulate(out.grad @ other.data.swapaxes(-1, -2))
             if other.requires_grad:
-                other._accumulate(self.data.T @ out.grad)
+                other._accumulate(self.data.swapaxes(-1, -2) @ out.grad)
         out._backward = _backward
         return out
 

@@ -62,7 +62,7 @@ class Adam(Optimizer):
 
 
 class AdamW(Optimizer):
-    # Adam with decoupled weight decay (weight decay applied directly to param.data, not folded into the gradient/momentum like plain Adam+L2)
+    # Adam with decoupled weight decay (weight decay applied directly to param.data)
     def __init__(self, lr: float = 0.001, beta1: float = 0.9, beta2: float = 0.999,
                  eps: float = 1e-8, weight_decay: float = 0.01) -> None:
         self.lr = lr
@@ -83,7 +83,6 @@ class AdamW(Optimizer):
             if key not in self.m:
                 self.m[key] = np.zeros_like(param.data)
                 self.v[key] = np.zeros_like(param.data)
-            # decoupled weight decay: shrink weights directly, not via gradient
             param.data -= self.lr * self.weight_decay * param.data
             self.m[key] = self.beta1 * self.m[key] + (1 - self.beta1) * param.grad
             self.v[key] = self.beta2 * self.v[key] + (1 - self.beta2) * (param.grad ** 2)
