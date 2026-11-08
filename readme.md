@@ -14,7 +14,7 @@ A tiny deep learning library built from scratch in Python - autograd engine, lay
 Install picodl with pip
 
 ```bash
-  pip install picodl
+  pip install picodl-nn
 ```
     
 ## Running Tests
